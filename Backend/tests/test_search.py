@@ -1,7 +1,8 @@
 from tests.test_base import TestBase
 from flask import url_for
-from application import app, db
-from application.models import Products
+from api import app, db
+from api.models import Products
+from unittest.mock import patch
 
 
 class TestApplication(TestBase):

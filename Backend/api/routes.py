@@ -1,11 +1,8 @@
 
-from application import app, db, api
-from flask import render_template, redirect, url_for, request, jsonify
+from api import app, db, api
 from flask_restx import Resource
-from application.models import Products
-from functions.searchApi import search_product
-from functions.addToDatabase import add_to_db
-import simplejson
+from api.models import Products
+from functions.productFunctions import search_product, add_to_db
 
 
 @api.route('/product/<string:barcode>')

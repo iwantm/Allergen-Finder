@@ -1,8 +1,7 @@
 import unittest
 from flask import Flask
-from application import app, db
-from application.models import Products
-
+from api import app, db
+from api.models import Products
 from flask_testing import TestCase
 import os
 
