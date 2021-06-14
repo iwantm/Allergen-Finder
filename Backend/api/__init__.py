@@ -1,7 +1,9 @@
 from flask import Flask
 from flask_restx import Api
 from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
 import os
+from flask_jwt_extended import JWTManager
 
 app = Flask(__name__)
 app.config.update(
@@ -15,5 +17,7 @@ app.config.update(
 
 db = SQLAlchemy(app)
 api = Api(app)
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
 
 from api import routes
