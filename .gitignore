@@ -1,7 +1,7 @@
 .DS_Store
 .env
 .flaskenv
-api-venv/
+allergenVenv/
 *.pyc
 *.pyo
 env/

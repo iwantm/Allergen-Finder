@@ -21,7 +21,7 @@ MarkupSafe==2.0.1
 openfoodfacts==0.1.2
 packaging==20.9
 pluggy==0.13.1
-psycopg2==2.8.6
+psycopg2-binary
 py==1.10.0
 pycparser==2.20
 PyJWT==2.1.0

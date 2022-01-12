@@ -5,7 +5,7 @@ from flask_restx import Resource
 from api.models import Products, Users
 from functions.productFunctions import search_product, add_to_db
 import datetime
-from flask_jwt_extended import create_access_token, jwt_required
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 
 @api.route('/product/<string:barcode>')
@@ -30,8 +30,11 @@ class SignupApi(Resource):
         user.hash_password()
         db.session.add(user)
         db.session.commit()
+        expires = datetime.timedelta(days=7)
         id = user.id
-        return {'id': str(id)}, 200
+        access_token = create_access_token(
+            identity=str(user.id), expires_delta=expires)
+        return {'id': str(id), "token":access_token}, 200
 
 
 @api.route('/auth/login')
