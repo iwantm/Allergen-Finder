@@ -8,7 +8,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 
 
 @api.route('/auth/register')
-class SignupApi(Resource):
+class Register(Resource):
     def post(self):
         body = request.get_json()
         user = Users(**body)
@@ -22,7 +22,7 @@ class SignupApi(Resource):
 
 
 @api.route('/auth/login')
-class LoginApi(Resource):
+class Login(Resource):
     def post(self):
         body = request.get_json()
         user = Users.query.filter_by(email=body.get('email')).first()
@@ -36,7 +36,7 @@ class LoginApi(Resource):
 
 
 @api.route('/auth/refresh')
-class RefreshApi(Resource):
+class Refresh(Resource):
     @jwt_required(refresh=True)
     def post(self):
         identity = get_jwt_identity()
