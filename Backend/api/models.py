@@ -6,11 +6,12 @@ class Products(db.Model):
     barcode = db.Column(db.String(255), primary_key=True)
     productName = db.Column(db.String(255))
     ingredients = db.Column(db.ARRAY(db.String(256)))
-    allergens = db.Column(db.String(255))
-    allergensTags = db.Column(db.ARRAY(db.String(256)))
-    traces = db.Column(db.ARRAY(db.String(256)))
+    allergens = db.Column(db.String(255), nullable=True)
+    allergensTags = db.Column(db.ARRAY(db.String(256)), nullable=True)
+    traces = db.Column(db.ARRAY(db.String(256)), nullable=True)
     created_by = db.Column(
         db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_by_name = db.Column(db.String(256), default='OpenFoodFacts')
     likes = db.Column(db.BigInteger, default=0)
 
     def as_dict(self):

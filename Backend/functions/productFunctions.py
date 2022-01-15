@@ -2,14 +2,16 @@ import openfoodfacts
 from api.models import Products
 
 
-def add_to_db(db, product):
+def add_to_db(db, product, user_id=None, user_name=None):
     new_product = Products(
         barcode=product['barcode'],
         productName=product['productName'],
         ingredients=product['ingredients'],
         allergens=product["allergens"],
         allergensTags=product["allergensTags"],
-        traces=product["traces"]
+        traces=product["traces"],
+        created_by = user_id,
+        created_by_name = user_name
     )
     db.session.add(new_product)
     db.session.commit()
