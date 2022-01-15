@@ -59,7 +59,7 @@ class Like(Resource):
             db.session.commit()
             return {"product": product.productName, "likes": product.likes}, 200
         else:
-            return {"err": "Prodct does not exist"}, 404
+            return {"err": "Product does not exist"}, 404
 
 
 @api.route('/product/dislike')
@@ -74,4 +74,4 @@ class Like(Resource):
             db.session.commit()
             return {"product": product.productName, "likes": product.likes}, 200
         else:
-            return {"err": "Prodct does not exist"}, 404
+            return {"err": "Product does not exist"}, 404

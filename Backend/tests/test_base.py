@@ -1,7 +1,7 @@
 import unittest
 from flask import Flask
 from api import app, db
-from api.models import Products
+from api.models import Products, Users
 from flask_testing import TestCase
 import os
 
@@ -31,8 +31,13 @@ class TestBase(TestCase):
                                 allergens='oofed',
                                 allergensTags=['fun', 'things'],
                                 traces=['fun', 'things'])
+        new_user1 = Users(user_name='test',
+                          email='test@test.test',
+                          password='test123'
+                          )
         db.session.add(new_product1)
         db.session.add(new_product2)
+        db.session.add(new_user1)
         db.session.commit()
 
     def tearDown(self):
