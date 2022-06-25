@@ -1,5 +1,4 @@
 .DS_Store
-.env
 .flaskenv
 allergenVenv/
 *.pyc
@@ -25,3 +24,4 @@ htmlcov/
 *,cover
 *.db
 *.sh
+api-venv/
