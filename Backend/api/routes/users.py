@@ -11,7 +11,8 @@ class Register(Resource):
     def post(self):
         body = request.get_json()
         user = Users.query.filter_by(user_name=body.get('user_name')).first()
-        if not user:   
+        email = Users.query.filter_by(email=body.get('email')).first()
+        if not user and not email:
             user = Users(**body)
             user.hash_password()
             db.session.add(user)
@@ -19,9 +20,9 @@ class Register(Resource):
             id = user.id
             access_token = create_access_token(identity=str(user.id))
             refresh_token = create_refresh_token(identity=str(user.id))
-            return {'id': str(id), "access_token": access_token, "refresh_token": refresh_token}, 201
-        
-        return {"msg": "user already exists"}, 406
+            return {"success": True, "message": "user created", "data": {'access_token': access_token, "refresh_token": refresh_token}}, 201
+
+        return {"success": False, "message": "user already exists", "data": {}}, 406
 
 
 @api.route('/auth/login')
@@ -30,14 +31,15 @@ class Login(Resource):
         body = request.get_json()
         user = Users.query.filter_by(email=body.get('email')).first()
         if not user:
-            return {'error': 'Email or password invalid'}, 401
+            return {"success": False, "message": "Email or password invalid'", "data": {}}, 401
         authorized = user.check_password(body.get('password'))
         if not authorized:
-            return {'error': 'Email or password invalid'}, 401
+            return {"success": False, "message": "Email or password invalid'", "data": {}}, 401
 
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
-        return {'access_token': access_token, "refresh_token": refresh_token}, 200
+
+        return {"success": True, "message": "user logged in", "data": {'access_token': access_token, "refresh_token": refresh_token}}, 200
 
 
 @api.route('/auth/refresh')
@@ -46,12 +48,13 @@ class Refresh(Resource):
     def post(self):
         identity = get_jwt_identity()
         access_token = create_access_token(identity=identity)
-        return {"access_token": access_token}
+        return {"success": True, "message": "token refreshed", "data": {"access_token": access_token}}, 200
 
-# @api.route('/auth/user')
-# class GetUser(Resource):
-#     @jwt_required()
-#     def get(self):
-#         user_id = get_jwt_identity()
-#         user_name = Users.query.filter_by(id=user_id).first().user_name
-#         return {"access_token": user_name}
+
+@api.route('/auth/user')
+class GetUser(Resource):
+    @jwt_required()
+    def get(self):
+        user_id = get_jwt_identity()
+        user = Users.query.filter_by(id=user_id).first()
+        return {"success": True, "message": "user info", "data": {"user_name": user.user_name, "email": user.email}}, 200

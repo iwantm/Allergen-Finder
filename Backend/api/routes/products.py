@@ -8,19 +8,21 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import json
 
 
-@api.route('/product/<string:barcode>')
+@api.route('/product/search')
 class Product(Resource):
     @jwt_required()
-    def get(self, barcode):
+    def post(self):
+        body = request.get_json()
+        barcode = body.get("barcode")
         product = Products.query.get(barcode)
         if not product:
             product = search_product(barcode)
             add_to_db(db, product)
             product = Products.query.get(barcode).as_dict()
-            return product, 201
+            return {"success": True, "message": "product created", "data": product}, 201
         else:
             product = product.as_dict()
-            return product
+            return {"success": True, "message": "product found", "data": product}, 200
 
 
 @api.route('/product/create')
