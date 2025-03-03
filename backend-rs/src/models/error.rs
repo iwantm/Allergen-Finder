@@ -10,9 +10,16 @@ pub enum ApiError<T> {
     #[error("Not Found: {0}")]
     #[response(status = 404, content_type = "json")]
     NotFound(Json<T>),
+}
+
+#[derive(Responder, Error, Debug)]
+pub enum AuthError<T> {
+    #[error("Failed to retrieve JWKs: {0}")]
+    #[response(status = 500, content_type = "json")]
+    JwkError(Json<T>),
     #[error("Unauthorised: {0}")]
     #[response(status = 401, content_type = "json")]
-    Unauthorised(Json<T>),
+    TokenError(Json<T>),
 }
 
 #[derive(Deserialize, Serialize)]

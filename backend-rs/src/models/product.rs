@@ -6,7 +6,7 @@ use rocket_db_pools::diesel::prelude::*;
 use rocket_db_pools::diesel::{prelude::RunQueryDsl, AsyncPgConnection};
 use serde::{Deserialize, Serialize};
 
-use super::api::ApiError;
+use super::error::ApiError;
 
 #[derive(Queryable, Selectable, Insertable, Deserialize, Serialize)]
 #[diesel(table_name = crate::schema::products)]

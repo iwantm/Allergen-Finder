@@ -3,7 +3,7 @@ use rocket_db_pools::Connection;
 
 use crate::{
     functions::product::get_product,
-    models::{api::ApiError, product::Product},
+    models::{error::ApiError, product::Product},
     DbConn,
 };
 

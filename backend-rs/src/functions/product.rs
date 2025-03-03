@@ -1,4 +1,4 @@
-use crate::models::api::ApiError;
+use crate::models::error::ApiError;
 use crate::models::off::ProductData;
 use crate::models::product::Product;
 use reqwest::get;
