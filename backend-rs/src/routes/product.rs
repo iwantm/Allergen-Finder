@@ -3,7 +3,7 @@ use rocket_db_pools::Connection;
 
 use crate::{
     functions::product::get_product,
-    models::{error::ApiError, product::Product},
+    models::{auth::AuthenticatedUser, error::ApiError, product::Product},
     DbConn,
 };
 
@@ -11,6 +11,7 @@ use crate::{
 pub async fn get_product_endpoint(
     code: &str,
     mut db_pool: Connection<DbConn>,
+    _user: AuthenticatedUser,
 ) -> Result<Json<Product>, ApiError<String>> {
     Ok(Json(get_product(code, &mut **db_pool).await?))
 }

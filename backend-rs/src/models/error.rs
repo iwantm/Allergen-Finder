@@ -20,6 +20,12 @@ pub enum AuthError<T> {
     #[error("Unauthorised: {0}")]
     #[response(status = 401, content_type = "json")]
     TokenError(Json<T>),
+    #[error("Auth0 error: {0}")]
+    #[response(status = 401, content_type = "json")]
+    Auth0Error(Json<T>),
+    #[error("Auth0 error: {0}")]
+    #[response(status = 401, content_type = "json")]
+    JwtError(Json<T>),
 }
 
 #[derive(Deserialize, Serialize)]
