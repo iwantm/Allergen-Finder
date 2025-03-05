@@ -1,8 +1,9 @@
 -- Your SQL goes here
-CREATE TABLE products (
+CREATE TABLE products(
     barcode TEXT PRIMARY KEY,
     product_name TEXT,
     ingredients TEXT[] NOT NULL,
     allergens TEXT[],
-    traces TEXT[]
+    traces TEXT[],
+    user_id TEXT
 )
