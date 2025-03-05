@@ -1,12 +1,11 @@
 use crate::schema::products;
 
 use diesel::insert_into;
-use rocket::serde::json::Json;
 use rocket_db_pools::diesel::prelude::*;
 use rocket_db_pools::diesel::{prelude::RunQueryDsl, AsyncPgConnection};
 use serde::{Deserialize, Serialize};
 
-use super::error::ApiError;
+use super::error::{ApiError, ErrorStruct};
 
 #[derive(Queryable, Selectable, Insertable, Deserialize, Serialize)]
 #[diesel(table_name = crate::schema::products)]
@@ -20,6 +19,8 @@ pub struct Product {
     pub allergens: Option<Vec<Option<String>>>,
     #[serde(alias = "traces_tags")]
     pub traces: Option<Vec<Option<String>>>,
+    #[serde(alias = "user_id")]
+    pub user_id: Option<String>,
 }
 
 impl Product {
@@ -35,7 +36,10 @@ impl Product {
 
         match call {
             Ok(product) => Ok(product),
-            Err(e) => Err(ApiError::InternalServer(Json(e.to_string()))),
+            Err(e) => Err(ApiError::InternalServerError(ErrorStruct::new(
+                "Failed to write from DB",
+                Some(e.to_string()),
+            ))),
         }
     }
 
@@ -51,7 +55,10 @@ impl Product {
 
         match call {
             Ok(product) => Ok(product),
-            Err(e) => Err(ApiError::InternalServer(Json(e.to_string()))),
+            Err(e) => Err(ApiError::InternalServerError(ErrorStruct::new(
+                "Failed to read from DB",
+                Some(e.to_string()),
+            ))),
         }
     }
 }

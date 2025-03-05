@@ -1,14 +1,15 @@
-use super::error::AuthError;
+use super::error::{ApiError, ErrorStruct};
 use jsonwebtoken::jwk::{AlgorithmParameters, JwkSet};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use reqwest::Client;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
-use rocket::serde::json::Json;
 use serde::Deserialize;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
+
+const JWKS_REFRESH_INTERVAL: Duration = Duration::from_secs(86400);
 
 #[derive(Debug)]
 pub struct Auth0Config {
@@ -31,21 +32,22 @@ impl Jwks {
         }
     }
 
-    async fn fetch_jwks(&self, domain: &str) -> Result<JwkSet, AuthError<String>> {
+    async fn fetch_jwks(&self, domain: &str) -> Result<JwkSet, ApiError<String>> {
         let last_updated = self.last_updated.read().await;
 
         let elapsed = match SystemTime::now().duration_since(*last_updated) {
             Ok(elapsed) => elapsed,
             Err(_) => {
-                return Err(AuthError::JwkError(Json(
-                    "Failed to unlock last_updated.".to_string(),
+                return Err(ApiError::AuthenticationError(ErrorStruct::new(
+                    "Failed to unlock last_updated.",
+                    None,
                 )));
             }
         };
 
         let keys = { self.keys.read().await };
 
-        if elapsed > Duration::from_secs(86400) || keys.is_none() {
+        if elapsed > JWKS_REFRESH_INTERVAL || keys.is_none() {
             drop(keys);
             drop(last_updated);
 
@@ -57,39 +59,32 @@ impl Jwks {
                             Ok(jwks) => {
                                 *self.keys.write().await = Some(jwks.clone());
                                 *self.last_updated.write().await = SystemTime::now();
-                                return Ok(jwks);
+                                Ok(jwks)
                             }
-                            Err(e) => {
-                                return Err(AuthError::JwkError(Json(format!(
-                                    "Failed to parse JWKS response: {}",
-                                    e
-                                ))));
-                            }
+                            Err(e) => Err(ApiError::AuthenticationError(ErrorStruct::new(
+                                "Failed to parse JWKS response.",
+                                Some(e.to_string()),
+                            ))),
                         }
                     } else {
-                        return Err(AuthError::JwkError(Json(format!(
-                            "Failed to fetch JWKS: HTTP {}",
-                            resp.status()
-                        ))));
+                        Err(ApiError::AuthenticationError(ErrorStruct::new(
+                            "Failed to fetch JWKS.",
+                            Some(format!("Response code: {}", resp.status())),
+                        )))
                     }
                 }
-                Err(e) => {
-                    return Err(AuthError::JwkError(Json(format!(
-                        "Failed to make JWKS request: {}",
-                        e
-                    ))));
-                }
+                Err(e) => Err(ApiError::AuthenticationError(ErrorStruct::new(
+                    "Failed to make JWKS request.",
+                    Some(e.to_string()),
+                ))),
             }
         } else {
             match keys.clone() {
-                Some(jwks) => {
-                    return Ok(jwks);
-                }
-                _ => {
-                    return Err(AuthError::JwkError(Json(
-                        "Failed to make jwk request.".to_string(),
-                    )));
-                }
+                Some(jwks) => Ok(jwks),
+                _ => Err(ApiError::AuthenticationError(ErrorStruct::new(
+                    "Failed to make JWKS request.",
+                    None,
+                ))),
             }
         }
     }
@@ -106,48 +101,59 @@ struct Claims {
 }
 
 pub struct AuthenticatedUser {
-    user_id: String,
-    scopes: Vec<String>,
+    pub user_id: String,
+    pub scopes: Vec<String>,
 }
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for AuthenticatedUser {
-    type Error = AuthError<String>;
+    type Error = ApiError<String>;
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let token = match request.headers().get_one("Authorization") {
             Some(value) if value.starts_with("Bearer ") => value[7..].to_string(),
             _ => {
-                return Outcome::Error((
-                    Status::Unauthorized,
-                    AuthError::TokenError(Json("No token found in header.".to_string())),
+                let error = ApiError::AuthenticationError(ErrorStruct::new(
+                    "No token found in header",
+                    None,
                 ));
+
+                request.local_cache(|| error.clone());
+
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
         let auth0_config = match request.rocket().state::<Auth0Config>() {
             Some(config) => config,
             _ => {
-                return Outcome::Error((
-                    Status::InternalServerError,
-                    AuthError::TokenError(Json("Auth0 config not found.".to_string())),
+                let error = ApiError::AuthenticationError(ErrorStruct::new(
+                    "Auth0 config not found.",
+                    None,
                 ));
+
+                request.local_cache(|| error.clone());
+
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
         let jwk_cache = match request.rocket().state::<Arc<Jwks>>() {
             Some(cache) => cache,
             _ => {
-                return Outcome::Error((
-                    Status::InternalServerError,
-                    AuthError::TokenError(Json("JWKS cache not found.".to_string())),
-                ));
+                let error =
+                    ApiError::AuthenticationError(ErrorStruct::new("JWKS cache not found.", None));
+
+                request.local_cache(|| error.clone());
+
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
         let jwks = match jwk_cache.fetch_jwks(&auth0_config.domain).await {
             Ok(jwks) => jwks.clone(),
             Err(e) => {
+                request.local_cache(|| e.clone());
                 return Outcome::Error((Status::Unauthorized, e));
             }
         };
@@ -155,30 +161,37 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
         let header = match jsonwebtoken::decode_header(&token) {
             Ok(header) => header,
             Err(_) => {
-                return Outcome::Error((
-                    Status::Unauthorized,
-                    AuthError::JwtError(Json("Invalid JWT.".to_string())),
-                ));
+                let error =
+                    ApiError::AuthenticationError(ErrorStruct::new("Invalid token header.", None));
+
+                request.local_cache(|| error.clone());
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
         let kid = match header.kid {
             Some(kid) => kid,
             _ => {
-                return Outcome::Error((
-                    Status::Unauthorized,
-                    AuthError::JwtError(Json("Header missing kid.".to_string())),
-                ));
+                let error =
+                    ApiError::AuthenticationError(ErrorStruct::new("Header missing kid.", None));
+
+                request.local_cache(|| error.clone());
+
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
         let jwk = match jwks.find(&kid) {
             Some(jwk) => jwk,
             _ => {
-                return Outcome::Error((
-                    Status::Unauthorized,
-                    AuthError::JwtError(Json("No matching key in JWKs.".to_string())),
+                let error = ApiError::AuthenticationError(ErrorStruct::new(
+                    "No matching key in JWKs.",
+                    None,
                 ));
+
+                request.local_cache(|| error.clone());
+
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
@@ -187,18 +200,26 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
                 match DecodingKey::from_rsa_components(&rsa.n, &rsa.e) {
                     Ok(key) => key,
                     Err(_) => {
-                        return Outcome::Error((
-                            Status::Unauthorized,
-                            AuthError::JwtError(Json("Failed to decode key.".to_string())),
+                        let error = ApiError::AuthenticationError(ErrorStruct::new(
+                            "Failed to decode key.",
+                            None,
                         ));
+
+                        request.local_cache(|| error.clone());
+
+                        return Outcome::Error((Status::Unauthorized, error));
                     }
                 }
             }
             _ => {
-                return Outcome::Error((
-                    Status::InternalServerError,
-                    AuthError::JwtError(Json("Unsupported key type in JWKS".to_string())),
+                let error = ApiError::AuthenticationError(ErrorStruct::new(
+                    "Unsupported key type in JWKS.",
+                    None,
                 ));
+
+                request.local_cache(|| error.clone());
+
+                return Outcome::Error((Status::Unauthorized, error));
             }
         };
 
@@ -218,10 +239,16 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
                     scopes,
                 })
             }
-            Err(e) => Outcome::Error((
-                Status::InternalServerError,
-                AuthError::JwtError(Json(format!("JWT validation failed: {}", e))),
-            )),
+            Err(e) => {
+                let error = ApiError::AuthenticationError(ErrorStruct::new(
+                    "JWT validation failed.",
+                    Some(e.to_string()),
+                ));
+
+                request.local_cache(|| error.clone());
+
+                Outcome::Error((Status::Unauthorized, error))
+            }
         }
     }
 }

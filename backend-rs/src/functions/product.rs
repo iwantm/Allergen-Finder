@@ -1,8 +1,7 @@
-use crate::models::error::ApiError;
+use crate::models::error::{ApiError, ErrorStruct};
 use crate::models::off::ProductData;
 use crate::models::product::Product;
 use reqwest::get;
-use rocket::serde::json::Json;
 use rocket_db_pools::diesel::AsyncPgConnection;
 
 async fn get_product_from_off(barcode: &str) -> Result<Product, ApiError<String>> {
@@ -11,8 +10,9 @@ async fn get_product_from_off(barcode: &str) -> Result<Product, ApiError<String>
     let resp = match get(url).await {
         Ok(resp) => resp,
         Err(_) => {
-            return Err(ApiError::InternalServer(Json(
-                "Failed to make request to Open Food Facts API".to_string(),
+            return Err(ApiError::InternalServerError(ErrorStruct::new(
+                "Failed to make request to Open Food Facts API",
+                None,
             )))
         }
     };
@@ -20,17 +20,18 @@ async fn get_product_from_off(barcode: &str) -> Result<Product, ApiError<String>
     let product_data = match resp.json::<ProductData>().await {
         Ok(product_data) => product_data,
         Err(_) => {
-            return Err(ApiError::InternalServer(Json(
-                "Failed to parse JSON response from Open Food Facts API".to_string(),
+            return Err(ApiError::InternalServerError(ErrorStruct::new(
+                "Failed to parse JSON response from Open Food Facts API",
+                None,
             )))
         }
     };
 
     match product_data.product {
         Some(product) => Ok(product),
-        _none => Err(ApiError::NotFound(Json(
-            format! {"Call to API Failed with error: {}",
-            product_data.result.name},
+        _none => Err(ApiError::NotFound(ErrorStruct::new(
+            "Call to API Failed with error.",
+            Some(product_data.result.name),
         ))),
     }
 }
