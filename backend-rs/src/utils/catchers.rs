@@ -1,6 +1,4 @@
-use crate::models::auth;
 use crate::models::error::{ApiError, ErrorStruct};
-use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{catch, catchers, Catcher, Request};
 

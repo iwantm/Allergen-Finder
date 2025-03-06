@@ -1,5 +1,5 @@
 -- Your SQL goes here
-CREATE TABLE products(
+CREATE TABLE IF NOT EXISTS products(
     barcode TEXT PRIMARY KEY,
     product_name TEXT,
     ingredients TEXT[] NOT NULL,

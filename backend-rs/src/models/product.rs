@@ -1,6 +1,7 @@
 use crate::schema::products;
 
 use diesel::insert_into;
+
 use rocket_db_pools::diesel::prelude::*;
 use rocket_db_pools::diesel::{prelude::RunQueryDsl, AsyncPgConnection};
 use serde::{Deserialize, Serialize};
