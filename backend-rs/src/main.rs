@@ -18,7 +18,7 @@ use std::sync::Arc;
 use utils::catchers;
 
 #[derive(Database)]
-#[database("my_db")]
+#[database("database")]
 pub struct DbConn(diesel::PgPool);
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");

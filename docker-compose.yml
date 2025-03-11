@@ -9,6 +9,16 @@ services:
       - 5432:5432
     env_file:
       - ./.db.env
+  api:
+    build:
+      context: ./backend-rs/
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
 
 volumes:
   postgres_data:
