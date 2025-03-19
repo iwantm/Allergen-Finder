@@ -26,6 +26,8 @@ module "api" {
   database_username = var.database_username
   database_password = var.database_password
   database_port     = var.database_port
+  auth0_domain      = var.auth0_domain
+  auth0_audience    = var.auth0_audience
   registry_address  = module.registry.registry_address
   database_address  = module.database.database_address
   providers = {

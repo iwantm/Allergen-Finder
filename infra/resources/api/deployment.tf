@@ -32,6 +32,14 @@ resource "kubernetes_deployment" "api" {
             name  = "ROCKET_DATABASES"
             value = "{database={url=\"postgres://${var.database_username}:${var.database_password}@${var.database_address}/${var.database_name}\"}}"
           }
+          env {
+            name  = "AUTH0_DOMAIN"
+            value = var.auth0_domain
+          }
+          env {
+            name  = "AUTH0_AUDIENCE"
+            value = var.auth0_audience
+          }
         }
       }
     }

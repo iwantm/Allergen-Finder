@@ -14,6 +14,7 @@ use rocket::launch;
 use rocket::Rocket;
 use rocket_db_pools::{diesel, Database};
 
+use std::env;
 use std::sync::Arc;
 use utils::catchers;
 
@@ -49,8 +50,8 @@ async fn rocket() -> _ {
     let http_client = Client::new();
 
     let auth0_config = Auth0Config {
-        domain: "dev-ftrjhtyxl1c6zv73.uk.auth0.com".to_string(),
-        audience: "allergen-finder".to_string(),
+        domain: env::var("AUTH0_DOMAIN").expect("AUTH0_DOMAIN must be set"),
+        audience: env::var("AUTH0_AUDIENCE").expect("AUTH0_AUDIENCE must be set"),
     };
 
     let jwks_cache = Arc::new(Jwks::new(http_client));

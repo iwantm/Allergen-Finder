@@ -34,3 +34,13 @@ variable "registry_namespace" {
   type        = string
   default     = "registry"
 }
+
+variable "auth0_domain" {
+  description = "The domain for Auth0"
+  type        = string
+}
+
+variable "auth0_audience" {
+  description = "The audience for Auth0"
+  type        = string
+}
